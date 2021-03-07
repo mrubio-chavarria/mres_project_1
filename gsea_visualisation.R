@@ -1,4 +1,10 @@
 
+# DESCRIPTION:
+# This scripts shows the evolution of the genes in the results obtained from GSEA.
+# It is shown the temporal evolution of all the genes in the gene set. These gene
+# sets are shown lineage.
+# Author: Mario Rubio
+
 # --------------------------------------------------------------
 # Libraries
 # --------------------------------------------------------------
@@ -26,6 +32,8 @@ library(wesanderson)
 g_legend<-function(a.gplot){
   # DESCRIPTION: Function to extract a legend from a plot.
   # Source: https://github.com/hadley/ggplot2/wiki/Share-a-legend-between-two-ggplot2-graphs
+  # :param a.gplot: [ggplot] the plot from which the legend is to be taken.
+  # :return: [gDesc] plot legend.
   tmp <- ggplot_gtable(ggplot_build(a.gplot))
   leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
   legend <- tmp$grobs[[leg]]
@@ -33,9 +41,18 @@ g_legend<-function(a.gplot){
 }
 
 prepare_log_data <- function(merged.data, base.day) {
+  # DESCRIPTION: changes the data provided in raw intensities to log2 fold-change.
+  # In essence, for each donor this function computes the average of gene 
+  # expression for the day base.day. Afterwards, all the intensity dataset is
+  # divided by the average (by donor). Finally, the function computes the log2 
+  # of the ratio.
+  # :param merged.data: [data.frame] intensity dataset with the annotations merged.
+  # :param base.day: [numeric] day used to compute the average of every donor.
+  # :return: [data.frame] merged.data with log2 fold-change intensities. 
+  
   # Create merged.data with logFC expression
   # Take all the samples from day 0
-  base <- merged.data[merged.data$Day == base.day, ]
+  base <- merged.data[merged.data$day == base.day, ]
   base <- base %>%
     dplyr::select(starts_with("ENSG")) %>%
     aggregate(list(Sample = base$Sample, limma_group = base$limma_group), mean)
@@ -59,7 +76,7 @@ prepare_log_data <- function(merged.data, base.day) {
   return(log.merged.data)
 }
 
-print_main_pathways <- function(lineage, pathways.folder, pathways.file, divided, n.genes.pathway, p.value.limit, translation, days, no.title, base.data, log.base.data) {
+print_main_pathways <- function(selected.lineage, pathways.folder, pathways.file, divided, n.genes.pathway, p.value.limit, translation, days, no.title, base.data, log.base.data) {
   # Read pathways data
   y.label <- "Intensity"
   log.y.label <- "log2 fold-change"
@@ -73,8 +90,8 @@ print_main_pathways <- function(lineage, pathways.folder, pathways.file, divided
   relevant.pathways <- pathways.data
   # Select the genes for every pathway
   print(paste("Pathways to plot: ", dim(relevant.pathways)[1], sep=""))
-  print(paste("Day: ", unlist(str_split(pathways.file, "_"))[5]))
-  print(paste("Lineage: ", lineage))
+  print(paste("day: ", unlist(str_split(pathways.file, "_"))[5]))
+  print(paste("Lineage: ", selected.lineage))
   print("The list is printed in inverse order")
   # The printing is in reversed order to plot the most relevant chart the last, 
   # what will make the reading easier.
@@ -109,32 +126,32 @@ print_main_pathways <- function(lineage, pathways.folder, pathways.file, divided
                          by.x = "SYMBOL",
                          by.y = "hgnc_symbol")$ensembl_gene_id
     genes.data <- cbind(base.data[, !grepl("ENSG" , colnames(log.base.data))],
-                        base.data[, genes.names]) %>% dplyr::filter(Lineage == lineage)
+                        base.data[, genes.names]) %>% dplyr::filter(lineage == selected.lineage)
     log.genes.data <- cbind(log.base.data[, !grepl("ENSG" , colnames(log.base.data))],
-                            log.base.data[, genes.names]) %>% dplyr::filter(Lineage == lineage)
-    genes.means <- aggregate(genes.data[, genes.names], list(genes.data$Day), mean)
-    log.genes.means <- aggregate(log.genes.data[, genes.names], list(genes.data$Day), mean)
-    colnames(genes.means)[1] <- "Day"
-    colnames(log.genes.means)[1] <- "Day"
-    plot.data <- melt(genes.means, id=c("Day")) %>% merge(y = remark.data,
+                            log.base.data[, genes.names]) %>% dplyr::filter(lineage == selected.lineage)
+    genes.means <- aggregate(genes.data[, genes.names], list(genes.data$day), mean)
+    log.genes.means <- aggregate(log.genes.data[, genes.names], list(genes.data$day), mean)
+    colnames(genes.means)[1] <- "day"
+    colnames(log.genes.means)[1] <- "day"
+    plot.data <- melt(genes.means, id=c("day")) %>% merge(y = remark.data,
                                                           by.x = "variable",
                                                           by.y = "ensembl_gene_id")
-    log.plot.data <- melt(log.genes.means, id=c("Day")) %>% merge(y = remark.data,
+    log.plot.data <- melt(log.genes.means, id=c("day")) %>% merge(y = remark.data,
                                                                   by.x = "variable",
                                                                   by.y = "ensembl_gene_id")
-    plot.data$Day <- as.integer(as.integer(plot.data$Day) - 1)
+    plot.data$day <- as.integer(as.integer(plot.data$day) - 1)
     remark.data <- plot.data %>% filter(IMPORTANT != 0)
     plot.data <- plot.data %>% filter(IMPORTANT == 0)
-    log.plot.data$Day <- as.integer(as.integer(log.plot.data$Day) - 1)
+    log.plot.data$day <- as.integer(as.integer(log.plot.data$day) - 1)
     log.remark.data <- log.plot.data %>% filter(IMPORTANT != 0)
     log.plot.data <- log.plot.data %>% filter(IMPORTANT == 0)
     # Plot the evolution for all the genes (raw data)
-    remark.data <- remark.data %>% dplyr::filter(Day <= last.day)
+    remark.data <- remark.data %>% dplyr::filter(day <= last.day)
     p.raw <- plot.data %>%
-      dplyr::filter(Day <= last.day) %>%
+      dplyr::filter(day <= last.day) %>%
       ggplot() + 
-      geom_line(mapping = aes(x = Day, y = value, group = variable), color = "lightblue", alpha = 0.65) +
-      geom_line(data = remark.data, mapping = aes(x = Day, y = value, group = variable, color = SYMBOL)) +
+      geom_line(mapping = aes(x = day, y = value, group = variable), color = "lightblue", alpha = 0.65) +
+      geom_line(data = remark.data, mapping = aes(x = day, y = value, group = variable, color = SYMBOL)) +
       scale_color_brewer(palette="Dark2") +
       theme_bw() + 
       theme(text = element_text(size=14),
@@ -144,12 +161,12 @@ print_main_pathways <- function(lineage, pathways.folder, pathways.file, divided
       # guides(color = F) +
       xlim(initial.day, last.day)
     # Plot the evolution for all the genes (logFC)
-    log.remark.data <- log.remark.data %>% dplyr::filter(Day <= last.day)
+    log.remark.data <- log.remark.data %>% dplyr::filter(day <= last.day)
     p.log <-log.plot.data %>%
-      dplyr::filter(Day <= last.day) %>%
+      dplyr::filter(day <= last.day) %>%
       ggplot() + 
-      geom_line(mapping = aes(x = Day, y = value, group = variable), color = "lightblue", alpha = 0.65) +
-      geom_line(data = log.remark.data, mapping = aes(x = Day, y = value, group = variable, color = SYMBOL)) +
+      geom_line(mapping = aes(x = day, y = value, group = variable), color = "lightblue", alpha = 0.65) +
+      geom_line(data = log.remark.data, mapping = aes(x = day, y = value, group = variable, color = SYMBOL)) +
       scale_color_brewer(palette="Dark2") +
       theme_bw() + 
       theme(text = element_text(size=14),
@@ -201,20 +218,17 @@ anno.data <- fread('./data/processed_annotation.tsv')
 # Combine expression and annotation data to plot charts
 expr.data <- t(as.matrix(expr_data))
 expr.data <- data.frame(expr.data)
-expr.data$Sample_ID <- rownames(expr.data)
+expr.data$sample_ID <- rownames(expr.data)
 rownames(expr.data) <- NULL
-merged.data <- merge(x = anno.data, y = expr.data, by = "Sample_ID")
-merged.data$Sample_ID <- factor(merged.data$Sample_ID)
+merged.data <- merge(x = anno.data, y = expr.data, by = "sample_ID")
+merged.data$sample_ID <- factor(merged.data$sample_ID)
 ordered.days <- 0:14
-merged.data$Differentation_day <- substr(merged.data$Differentation_day, 4, 5)
-merged.data$Day <- factor(merged.data$Differentation_day, levels = ordered.days)
-merged.data$Differentation_day <- NULL
-merged.data$Donor <- substr(merged.data$Donor, 6, 6)
+merged.data$day <- factor(merged.data$day, levels = ordered.days)
 ordered.donors <- 1:4
-merged.data$Donor <- factor(merged.data$Donor, levels = ordered.donors)
+merged.data$donor <- factor(merged.data$donor, levels = ordered.donors)
 ordered.lineages <- c("BFUE", "Mk", "GM")
-merged.data$Lineage <- factor(merged.data$Lineage, levels = ordered.lineages)
-merged.data$Sample <- factor(substr(merged.data$Sample_ID, 4, 5),
+merged.data$lineage <- factor(merged.data$lineage, levels = ordered.lineages)
+merged.data$Sample <- factor(substr(merged.data$sample_ID, 4, 5),
                              levels = c("A1","A2", "B1", "B2", "C1", "C2"))
 merged.data <- merged.data %>% data.frame
 
@@ -238,7 +252,7 @@ days <- c(0, 10)
 # More enriched in Day 0
 pathways.file.bfue.0 <- "gsea_report_for_Day_0_BFUE_1612444397464.tsv"
 no.title <- F
-divided <- T
+divided <- F
 print_main_pathways(lineage, pathways.folder.bfue, pathways.file.bfue.0, divided,
                     n.genes.pathway, p.value.limit, translation, days, no.title,
                     merged.data, log.merged.data)

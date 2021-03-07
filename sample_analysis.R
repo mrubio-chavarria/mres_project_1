@@ -26,7 +26,7 @@ library(wesanderson)
 prepare_log_data <- function(merged.data, base.day) {
   # Create merged.data with logFC expression
   # Take all the samples from day 0
-  base <- merged.data[merged.data$Day == base.day, ]
+  base <- merged.data[merged.data$day == base.day, ]
   base <- base %>%
     dplyr::select(starts_with("ENSG")) %>%
     aggregate(list(Sample = base$Sample, limma_group = base$limma_group), mean)
@@ -67,12 +67,12 @@ expr_data$Ensembl <- NULL
 anno.data <- fread('./data/processed_annotation.tsv')
 
 # Lodel model results
-BFUE_res <- fread('/home/mario/Projects/az_project/data/BFUE_res.tsv')
-GM_res <- fread('/home/mario/Projects/az_project/data/GM_res.tsv')
-Mk_res <- fread('/home/mario/Projects/az_project/data/Mk_res.tsv')
+BFUE_res <- fread('./data/BFUE_res.tsv')
+GM_res <- fread('./data/GM_res.tsv')
+Mk_res <- fread('./data/Mk_res.tsv')
 
 # Translate to gene symbols
-mart <- useEnsembl(biomart='ensembl', dataset='hsapiens_gene_ensembl') # Some times the Ensembl site is unresponsive. 
+mart <- useEnsembl(biomart='ensembl', dataset='hsapiens_gene_ensembl') # Some times the Ensembl site is unresponsive.
 translation <-  getBM(attributes = c('ensembl_gene_id', 'hgnc_symbol', 'description'),
                       filters = 'ensembl_gene_id',
                       values = rownames(expr_data),
@@ -81,20 +81,17 @@ translation <-  getBM(attributes = c('ensembl_gene_id', 'hgnc_symbol', 'descript
 # Combine expression and annotation data to plot charts
 expr.data <- t(as.matrix(expr_data))
 expr.data <- data.frame(expr.data)
-expr.data$Sample_ID <- rownames(expr.data)
+expr.data$sample_ID <- rownames(expr.data)
 rownames(expr.data) <- NULL
-merged.data <- merge(x = anno.data, y = expr.data, by = "Sample_ID")
-merged.data$Sample_ID <- factor(merged.data$Sample_ID)
+merged.data <- merge(x = anno.data, y = expr.data, by = "sample_ID")
+merged.data$sample_ID <- factor(merged.data$sample_ID)
 ordered.days <- 0:14
-merged.data$Differentation_day <- substr(merged.data$Differentation_day, 4, 5)
-merged.data$Day <- factor(merged.data$Differentation_day, levels = ordered.days)
-merged.data$Differentation_day <- NULL
-merged.data$Donor <- substr(merged.data$Donor, 6, 6)
+merged.data$day <- factor(merged.data$day, levels = ordered.days)
 ordered.donors <- 1:4
-merged.data$Donor <- factor(merged.data$Donor, levels = ordered.donors)
+merged.data$donor <- factor(merged.data$donor, levels = ordered.donors)
 ordered.lineages <- c("BFUE", "Mk", "GM")
-merged.data$Lineage <- factor(merged.data$Lineage, levels = ordered.lineages)
-merged.data$Sample <- factor(substr(merged.data$Sample_ID, 4, 5),
+merged.data$lineage <- factor(merged.data$lineage, levels = ordered.lineages)
+merged.data$Sample <- factor(substr(merged.data$sample_ID, 4, 5),
                              levels = c("A1","A2", "B1", "B2", "C1", "C2"))
 merged.data <- merged.data %>% data.frame
 
@@ -134,7 +131,7 @@ log.data.tsne <- Rtsne(log.data.pca$x, perplexity=perplexity.value)
 
 # NORMAL intensities
 # Plot by lineage
-labels <- merged.data$Lineage
+labels <- merged.data$lineage
 plot.data <- cbind(labels, data.frame(data.tsne$Y))
 colnames(plot.data) <- c("labels", "component1", "component2")
 p.lineage <- plot.data %>%
@@ -147,8 +144,8 @@ p.lineage <- plot.data %>%
   scale_color_brewer(palette="Dark2") +
   labs(x = "t-SNE 1", y = "t-SNE 2", colour = "Lineage")
 # Plot by day
-days <- merged.data$Day
-lineage <- merged.data$Lineage
+days <- merged.data$day
+lineage <- merged.data$lineage
 plot.data <- cbind(lineage, cbind(as.numeric(days), data.frame(data.tsne$Y)))
 colnames(plot.data) <- c("lineage", "labels", "component1", "component2")
 p.day <- plot.data %>%
@@ -184,7 +181,7 @@ grid.arrange(p.lineage, p.day, p.test, ncol=3)
 
 # LOGFC intensities
 # Plot by lineage
-labels <- merged.data$Lineage
+labels <- merged.data$lineage
 plot.data <- cbind(labels, data.frame(log.data.tsne$Y))
 colnames(plot.data) <- c("labels", "component1", "component2")
 log.p.lineage <- plot.data %>%
@@ -197,8 +194,8 @@ log.p.lineage <- plot.data %>%
   scale_color_brewer(palette="Dark2") +
   labs(x = "t-SNE 1", y = "t-SNE 2", colour = "Lineage")
 # Plot by day
-days <- merged.data$Day
-lineage <- merged.data$Lineage
+days <- merged.data$day
+lineage <- merged.data$lineage
 plot.data <- cbind(lineage, cbind(as.numeric(days), data.frame(log.data.tsne$Y)))
 colnames(plot.data) <- c("lineage", "labels", "component1", "component2")
 log.p.day <- plot.data %>%
@@ -238,19 +235,20 @@ grid.arrange(log.p.lineage, log.p.day, log.p.test, ncol=3)
 
 # NORMAL intensities
 # PCA
-p.donor.pca <- autoplot(data.pca, data = merged.data, colour = 'Donor', shape='Donor', frame=T) +
+p.donor.pca <- autoplot(data.pca, data = merged.data, colour = 'donor', shape='donor', frame=T) +
   #labs(x = "PCA 1", y = "PCA 2") +
   theme_bw() +
   theme(text = element_text(size=16),
         axis.text.x = element_text(size=16),
-        axis.text.y = element_text(size=16))
+        axis.text.y = element_text(size=16)) +
+  labs(colour = 'Donor', shape = 'Donor', fill = 'Donor')
 # PCA 1:  14.51%
 # PCA 2:  12.3%
 # t-SNE
 # Plot by donor
-labels <- merged.data$Donor
+labels <- merged.data$donor
 plot.data <- cbind(merged.data, data.frame(data.tsne$Y))
-plot.data <- plot.data[, c("Donor","X1", "X2")]
+plot.data <- plot.data[, c("donor","X1", "X2")]
 colnames(plot.data) <- c("labels", "component1", "component2")
 p.donor.tsne <- plot.data %>%
   ggplot(aes(x = component1, y = component2, colour = labels)) +
@@ -265,10 +263,10 @@ p.donor.tsne <- plot.data %>%
   scale_color_brewer(palette="Dark2") +
   labs(x = "t-SNE 1", y = "t-SNE 2", colour = "Donor")
 # UMAP
-labels <- merged.data$Donor
+labels <- merged.data$donor
 plot.data <- cbind(labels, data.frame(data.umap$layout))
 colnames(plot.data) <- c("labels", "component1", "component2")
-p.donor.umap <- plot.data[merged.data$Day == 0, ] %>%
+p.donor.umap <- plot.data[merged.data$day == 0, ] %>%
   ggplot(aes(x = component1, y = component2, colour = labels)) +
   geom_point(size = 2) +
   geom_density2d(contour_var = "density", alpha = 0.5, show.legend = F) +
@@ -279,25 +277,26 @@ p.donor.umap <- plot.data[merged.data$Day == 0, ] %>%
   theme(text = element_text(size=16),
         axis.text.x = element_text(size=16),
         axis.text.y = element_text(size=16)) +
-  labs(x = "UMAP 1", y = "UMAP 2", colour = "Donors")
+  labs(x = "UMAP 1", y = "UMAP 2", colour = "Donor")
 # Show plots
 grid.arrange(p.donor.pca, p.donor.tsne, p.donor.umap, ncol=3)
 
 # LOGFC intensities
 # PCA
-log.p.donor.pca <- autoplot(log.data.pca, data = merged.data, colour = 'Donor', shape='Donor', frame=T) +
+log.p.donor.pca <- autoplot(log.data.pca, data = merged.data, colour = 'donor', shape='donor', frame=T) +
   labs(x = "PCA 1", y = "PCA 2") +
   theme_bw() +
   theme(text = element_text(size=16),
         axis.text.x = element_text(size=16),
-        axis.text.y = element_text(size=16))
+        axis.text.y = element_text(size=16)) +
+  labs(colour = 'Donor', shape = 'Donor', fill = 'Donor')
 # PCA 1:  14.51%
 # PCA 2:  12.06%
 # t-SNE
 # Plot by donor
-labels <- merged.data$Donor
+labels <- merged.data$donor
 plot.data <- cbind(merged.data, data.frame(log.data.tsne$Y))
-plot.data <- plot.data[, c("Donor","X1", "X2")]
+plot.data <- plot.data[, c("donor","X1", "X2")]
 colnames(plot.data) <- c("labels", "component1", "component2")
 log.p.donor.tsne <- plot.data %>%
   ggplot(aes(x = component1, y = component2, colour = labels)) +
@@ -312,10 +311,10 @@ log.p.donor.tsne <- plot.data %>%
   scale_color_brewer(palette="Dark2") +
   labs(x = "t-SNE 1", y = "t-SNE 2", colour = "Donor")
 # UMAP
-labels <- merged.data$Donor
+labels <- merged.data$donor
 plot.data <- cbind(labels, data.frame(log.data.umap$layout))
 colnames(plot.data) <- c("labels", "component1", "component2")
-log.p.donor.umap <- plot.data[merged.data$Day == 0, ] %>%
+log.p.donor.umap <- plot.data[merged.data$day == 0, ] %>%
   ggplot(aes(x = component1, y = component2, colour = labels)) +
   geom_point(size = 2) +
   geom_density2d(contour_var = "density", alpha = 0.5, show.legend = F) +
@@ -326,7 +325,7 @@ log.p.donor.umap <- plot.data[merged.data$Day == 0, ] %>%
   theme(text = element_text(size=16),
         axis.text.x = element_text(size=16),
         axis.text.y = element_text(size=16)) +
-  labs(x = "UMAP 1", y = "UMAP 2", colour = "Donors")
+  labs(x = "UMAP 1", y = "UMAP 2", colour = "Donor")
 # Show plots
 grid.arrange(log.p.donor.pca, log.p.donor.tsne, log.p.donor.umap, ncol=3)
 
