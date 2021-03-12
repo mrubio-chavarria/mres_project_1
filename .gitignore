@@ -40,3 +40,4 @@ vignettes/*.pdf
 gsea_input_files/
 gsea_results/
 data/
+tfra_data.RData

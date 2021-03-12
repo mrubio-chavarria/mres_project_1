@@ -1,4 +1,13 @@
 
+# DESCRIPTION: 
+# This script show the computation of the charts introduced in the sample analysis
+# of the report. All the charts were computed twice. The first time with raw
+# intensities, the second with logFC. The report only shows the plots computed with
+# raw intensity values.
+
+# Author: Mario Rubio Chavarría
+
+
 # --------------------------------------------------------------
 # Libraries
 # --------------------------------------------------------------
@@ -6,18 +15,12 @@ library(data.table)
 library(limma)
 library(biomaRt)
 library(tidyverse)
-library(gridExtra)
-library(readxl)
 library(reshape2)
 library(ggfortify)
-library(writexl)
 library(umap)
-library(reshape)
 library(Rtsne)
-library(ggrepel)
 library(gridExtra)
-library(fame)
-library(wesanderson)
+
 
 # --------------------------------------------------------------
 # Functions

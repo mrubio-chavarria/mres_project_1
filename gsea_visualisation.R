@@ -3,27 +3,19 @@
 # This scripts shows the evolution of the genes in the results obtained from GSEA.
 # It is shown the temporal evolution of all the genes in the gene set. These gene
 # sets are shown lineage.
-# Author: Mario Rubio
 
-# --------------------------------------------------------------
+# Author: Mario Rubio Chavarría
+
+
 # Libraries
-# --------------------------------------------------------------
 library(data.table)
 library(limma)
 library(biomaRt)
 library(tidyverse)
-library(gridExtra)
-library(readxl)
 library(reshape2)
 library(ggfortify)
-library(writexl)
 library(umap)
-library(reshape)
-library(Rtsne)
-library(ggrepel)
 library(gridExtra)
-library(fame)
-library(wesanderson)
 
 
 # --------------------------------------------------------------
@@ -242,7 +234,6 @@ log.merged.data <- prepare_log_data(merged.data, base.day)
 # --------------------------------------------------------------
 
 # Erythrocytes
-# Common
 lineage <- "BFUE"
 pathways.folder.bfue <- "./gsea_results/bfue_gsea_results/"
 n.genes.pathway <- 'all'
@@ -259,13 +250,12 @@ print_main_pathways(lineage, pathways.folder.bfue, pathways.file.bfue.0, divided
 # More enriched in Day 10
 pathways.file.bfue.10 <- "gsea_report_for_Day_10_BFUE_1612444397464.tsv"
 no.title <- F
-divided <- T
+divided <- F
 print_main_pathways(lineage, pathways.folder.bfue, pathways.file.bfue.10, divided,
                     n.genes.pathway, p.value.limit, translation, days, no.title,
                     merged.data, log.merged.data)
 
 # Myeloid
-# Common
 lineage <- "GM"
 pathways.folder.gm <- "./gsea_results/gm_gsea_results/"
 n.genes.pathway <- 'all'
@@ -275,20 +265,19 @@ days <- c(0, 14)
 # More enriched in Day 0
 pathways.file.gm.0 <- "gsea_report_for_Day_0_GM_1612444535888.tsv"
 no.title <- F
-divided <- T
+divided <- F
 print_main_pathways(lineage, pathways.folder.gm, pathways.file.gm.0, divided,
                     n.genes.pathway, p.value.limit, translation, days, no.title,
                     merged.data, log.merged.data)
 # More enriched in Day 14
 pathways.file.gm.14 <- "gsea_report_for_Day_14_GM_1612444535888.tsv"
 no.title <- F
-divided <- T
+divided <- F
 print_main_pathways(lineage, pathways.folder.gm, pathways.file.gm.14, divided,
                     n.genes.pathway, p.value.limit, translation, days, no.title,
                     merged.data, log.merged.data)
 
 # Megakaryocytes
-# Common
 lineage <- "Mk"
 pathways.folder.mk <- "./gsea_results/mk_gsea_results/"
 n.genes.pathway <- 'all'
@@ -298,14 +287,14 @@ days <- c(0, 14)
 # More enriched in Day 0
 pathways.file.mk.0 <- "gsea_report_for_Day_0_Mk_1612444630696.tsv"
 no.title <- F
-divided <- T
+divided <- F
 print_main_pathways(lineage, pathways.folder.mk, pathways.file.mk.0, divided,
                     n.genes.pathway, p.value.limit, translation, days, no.title,
                     merged.data, log.merged.data)
 # More enriched in Day 14
 pathways.file.mk.14 <- "gsea_report_for_Day_14_Mk_1612444630696.tsv"
 no.title <- F
-divided <- T
+divided <- F
 print_main_pathways(lineage, pathways.folder.mk, pathways.file.mk.14, divided,
                     n.genes.pathway, p.value.limit, translation, days, no.title,
                     merged.data, log.merged.data)

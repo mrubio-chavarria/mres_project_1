@@ -1,26 +1,19 @@
 
+# DESCRIPTION: 
+# This script reads the transcriptomics dataset and computes the linear models for 
+# the three lineages. These data are stored for future use.
+
+
 # Libraries
 library(data.table)
 library(limma)
 library(biomaRt)
-library(tidyverse)
-library(gridExtra)
-library(readxl)
-library(reshape2)
-library(ggfortify)
-library(writexl)
-library(umap)
-library(reshape)
-library(Rtsne)
-library(ggrepel)
-library(gridExtra)
-library(fame)
 library(stringr)
 
 
-# --------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Read data
-# --------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 setwd('/home/mario/Projects/az_project/')
 anno.data = fread('./data/A4240_sample_annotation_and_QC.csv')
@@ -90,6 +83,7 @@ MK_res$ensembl_gene_id <- rownames(MK_res)
 rownames(MK_res) <- NULL
 GM_res$ensembl_gene_id <- rownames(GM_res)
 rownames(GM_res) <- NULL
+
 
 # --------------------------------------------------------------
 # Store data

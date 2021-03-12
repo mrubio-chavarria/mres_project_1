@@ -1,7 +1,9 @@
 
-# ------------------------------------------------------------------------------
+# DESCRIPTION: 
+# This file computes the creation of all the files needed to launch GSEA.
+
+
 # Libraries
-# ------------------------------------------------------------------------------
 library(biomaRt)
 library(dplyr)
 library(qusage)
@@ -9,7 +11,7 @@ library(gdata)
 
 
 # ------------------------------------------------------------------------------
-# Author: X
+# Generate the GSEA input files
 # ------------------------------------------------------------------------------
 
 setwd('/home/mario/Projects/az_project')
@@ -178,7 +180,7 @@ write.table(gm_ordered, './gsea_input_files/gm_gsea_input.txt',
 
 
 # ------------------------------------------------------------------------------
-# Author: Mario Rubio
+# Create the customised gene sets database
 # ------------------------------------------------------------------------------
 
 # Read data

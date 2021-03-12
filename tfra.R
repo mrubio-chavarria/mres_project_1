@@ -1,5 +1,10 @@
 
 # DESCRIPTION: 
+# This script performs the TFRA analysis. From the study of the number of clusters
+# to the analysis with Dorothea.
+
+# Author: Mario Rubio Chavarría
+
 
 # ------------------------------------------------------------------------------
 # Libraries
@@ -8,15 +13,10 @@ library(data.table)
 library(limma)
 library(biomaRt)
 library(tidyverse)
-library(readxl)
-library(Mfuzz)
 library(stringr)
 library(Biobase)
-library(fame)
 library(ggfortify)
 library(ggplot2)
-library(Rtsne)
-library(umap)
 library(GSA)
 library(dorothea)
 
@@ -25,7 +25,11 @@ library(dorothea)
 # Functions
 # ------------------------------------------------------------------------------
 kmeansBIC <- function(fit){
+  # DESCRIPTION:
+  # This function computes the Bayesian Information Criterion.
   # Source: http://sherrytowers.com/2013/10/24/k-means-clustering/
+  # :param fit: []
+  # :return: value of the bayesian information criterion for this clustering. 
   m = ncol(fit$centers)
   n = length(fit$cluster)
   k = nrow(fit$centers)
@@ -37,6 +41,7 @@ kmeansBIC <- function(fit){
 # ------------------------------------------------------------------------------
 # Prepare the data
 # ------------------------------------------------------------------------------
+
 setwd('/home/mario/Projects/az_project/')
 
 # Load annotation data
@@ -59,8 +64,10 @@ genes <- genes[, c("Ensembl", "hgnc_symbol")]
 # ------------------------------------------------------------------------------
 # Create the gene clusters for all the lineages
 # ------------------------------------------------------------------------------
+
 lineages <- c('BFUE', 'GM', 'Mk')
 first.lineage <- T
+filtered.dorothea_hs <- dorothea_hs[!(dorothea_hs$confidence %in% c("D", "E")), ]  # Prepare regulons
 for (selected.lineage in lineages) {
   filtered.anno <- anno.data %>% dplyr::filter(lineage == selected.lineage,
                                                sample_ID %in% colnames(expr.data))
@@ -121,7 +128,6 @@ for (selected.lineage in lineages) {
   colnames(dorothea.data) <- c("cluster", "gene", "day", "intensity")
   
   # DOROTHEA
-  filtered.dorothea_hs <- dorothea_hs[!(dorothea_hs$confidence %in% c("D", "E")), ] 
   tfactors <- unique(filtered.dorothea_hs$tf)
   # Translate to hgnc symbols
   doro.data <- merge(x = dorothea.data, y = translation, by.x = "gene", by.y = "Ensembl")
@@ -154,17 +160,20 @@ for (selected.lineage in lineages) {
   contingency.table <- contingency.table[2:dim(contingency.table)[1], ]
   # Correct for multiple testing
   contingency.table$adjusted.p.value <- p.adjust(contingency.table$p.value, method = "BH", n = length(contingency.table$p.value))
-  
+
   # Obtain and store the relevant results
   cutoff <- 0.25
   lineage.relevant <- contingency.table[contingency.table$adjusted.p.value <= cutoff, ]
   lineage.relevant$lineage <- rep(paste(unlist(str_split(selected.lineage, "-")), collapse = ""), times=dim(lineage.relevant)[1])
   
-  # Store the transcription factor results
+  # Store the transcription factor results and the contingency table
+  contingency.table$lineage <- selected.lineage
   if (selected.lineage == "BFUE") {
     relevant <- lineage.relevant
+    lineage.table <- contingency.table
   } else {
     relevant <- rbind(relevant, lineage.relevant)
+    lineage.table <- rbind(lineage.table, contingency.table)
   }
   
   # Store gene clustering
@@ -181,25 +190,144 @@ for (selected.lineage in lineages) {
 # ------------------------------------------------------------------------------
 # Print the clusters for the selected lineage
 # ------------------------------------------------------------------------------
+
 selected.lineage <- "BFUE"
 print(paste("Lineage:", selected.lineage))
 for (selected.cluster in 1:7) {
   print(paste("Cluster:", selected.cluster))
-  filtered.gene.data <- gene.data %>% 
+  filtered.gene.data <- gene.data %>%
     dplyr::filter(lineage == selected.lineage, cluster == selected.cluster)
   trend.data <- filtered.gene.data %>%
     dplyr::filter(lineage == selected.lineage, cluster == selected.cluster) %>%
     dplyr::group_by(day) %>%
     dplyr::summarise(trend = median(intensity)) %>% data.frame
-  plot <- filtered.gene.data %>% 
-    ggplot + 
+  plot <- filtered.gene.data %>%
+    ggplot +
     geom_line(mapping = aes(x = day, y = intensity, group = gene), alpha = 0.5, color = "lightblue") +
     geom_line(data = trend.data, mapping = aes(x = day, y = trend, group = 1), color = "red") +
-    labs(x = "Time (days)", y = "log2 fold-change") + 
+    labs(x = "Time (days)", y = "log2 fold-change") +
     theme_bw() +
     theme(text = element_text(size=14),
           axis.text.x = element_text(size=14),
-          axis.text.y = element_text(size=14)) 
+          axis.text.y = element_text(size=14))
   print(plot)
 }
+
+
+# ------------------------------------------------------------------------------
+# Study the number of clusters (BIC and Elbow methods)
+# ------------------------------------------------------------------------------
+
+# Compute the metrics
+lineages <- c("BFUE", "GM", "Mk")
+elbows <- c()
+bics <- c()
+for (selected.lineage in lineages) {
+  filtered.dorothea_hs <- dorothea_hs[!(dorothea_hs$confidence %in% c("D", "E")), ]  # Prepare regulons
+  filtered.anno <- anno.data %>% dplyr::filter(lineage == selected.lineage,
+                                               sample_ID %in% colnames(expr.data))
+  filtered.anno <- filtered.anno[order(filtered.anno$day), ]
+  selected.samples <- filtered.anno$sample_ID
+  lineage.expr.data <- expr.data[, selected.samples]
+  
+  # Compute log2FC with respect day 0
+  filtered.anno.0 <- filtered.anno %>% dplyr::filter(day == 0)
+  first <- T
+  for (local.donor in unique(filtered.anno$donor)) {
+    # Iterate for every donor to divide by the reference for that donor
+    donor.samples.0 <- filtered.anno.0[filtered.anno.0$donor == local.donor, ]$sample_ID
+    donor.expr.0 <- expr.data[, unlist(donor.samples.0)]
+    donor.reference <- data.frame(rowMeans(donor.expr.0))
+    donor.samples <- filtered.anno[filtered.anno$donor == local.donor, ]$sample_ID
+    donor.expr <- expr.data[, unlist(donor.samples)]
+    donor.reference <- donor.reference[, rep(1, times=dim(donor.expr)[2])]
+    colnames(donor.reference) <- colnames(donor.expr)
+    log.donor.expr <- log(donor.expr / donor.reference, base = 2)
+    if (first) {
+      log.lineage.expr.data <- log.donor.expr
+      first <- F
+    } else {
+      log.lineage.expr.data <- cbind(log.lineage.expr.data, log.donor.expr)
+    }
+  }
+  
+  # Average donors
+  first <- T
+  for (local.day in unique(filtered.anno$day)) {
+    samples <- filtered.anno[filtered.anno$day == local.day, ]$sample_ID
+    columns <- log.lineage.expr.data[, samples]
+    day.means <- rowMeans(columns)
+    if (first) {
+      avg.log.lineage.expr.data <- data.frame("0" = day.means)
+      first <- F
+    } else {
+      avg.log.lineage.expr.data <- cbind(avg.log.lineage.expr.data, day.means)
+    }
+  }
+  colnames(avg.log.lineage.expr.data) <- unique(filtered.anno$day)
+  
+  # Compute the z-score for every column
+  z.score.data <- apply(avg.log.lineage.expr.data, 2, function(x) {(x - mean(x))/sd(x)})
+  
+  # Study the best K with the elbow method
+  iter.max <- 100
+  elbow.centroids.data <- data.frame(centers = 0, variance = 0)
+  min.n.centers <- 2
+  max.n.centers <- 20
+  n.start <- 50
+  for (centers in min.n.centers:max.n.centers) {
+    computed.kmeans <- kmeans(z.score.data, centers, iter.max, n.start)
+    elbow.centroids.data <- rbind(elbow.centroids.data, c(centers, computed.kmeans$tot.withinss))
+  }
+  elbow.centroids.data <- elbow.centroids.data[2:dim(elbow.centroids.data)[1], ]
+  elbow.centroids.data$lineage <- rep(selected.lineage, times = dim(elbow.centroids.data)[1])
+  # Store the plot
+  if (selected.lineage == "BFUE") {
+    elbows <- elbow.centroids.data
+  } else {
+    elbows <- rbind(elbows, elbow.centroids.data)
+  }
+  
+  # Study the best K with the BIC method
+  min.n.centers <- 2
+  max.n.centers <- 20
+  iter.max <- 100
+  bic.centroids.data <- data.frame(centers = 0, bic = 0)
+  for (centers in min.n.centers:max.n.centers) {
+    computed.kmeans <- kmeans(z.score.data, centers, iter.max, 50)
+    bic.centroids.data <- rbind(bic.centroids.data, c(centers, kmeansBIC(computed.kmeans)))
+  }
+  bic.centroids.data <- bic.centroids.data[2:dim(bic.centroids.data)[1], ]
+  bic.centroids.data$lineage <- rep(selected.lineage, times = dim(bic.centroids.data)[1])
+  # Store the plot
+  if (selected.lineage == "BFUE") {
+    bics <- bic.centroids.data
+  } else {
+    bics <- rbind(bics, bic.centroids.data)
+  }
+}
+
+# Compute the metric plots
+elbow.plot <- elbows %>% ggplot +
+  geom_line(mapping = aes(x = centers, y = variance, color = lineage)) + 
+  scale_color_brewer(palette="Dark2") +
+  theme_bw() + 
+  theme(text = element_text(size=14),
+        axis.text.x = element_text(size=14),
+        axis.text.y = element_text(size=14)) +
+  labs(x = "Clusters", y = "Variance", colour = "Lineage")
+
+bic.plot <- bics %>% ggplot +
+  geom_line(mapping = aes(x = centers, y = bic, color = lineage)) + 
+  scale_color_brewer(palette="Dark2") +
+  theme_bw() + 
+  theme(text = element_text(size=14),
+        axis.text.x = element_text(size=14),
+        axis.text.y = element_text(size=14)) +
+  labs(x = "Clusters", y = "BIC", colour = "Lineage")
+
+# Show the plots
+# print(elbow.plot)
+# print(bic.plot)
+grid.arrange(elbow.plot, bic.plot, nrow = 2)
 
