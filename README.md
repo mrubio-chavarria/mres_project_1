@@ -33,3 +33,5 @@ The files follow the order described in the report. Particularly, data_processin
 * DescTools == 0.99.40
 * qusage == 2.24.0
 * gdata == 2.18.0
+
+This code uses R version 4.0.3.

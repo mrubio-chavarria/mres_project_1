@@ -128,6 +128,7 @@ perplexity.value <- 110
 data.tsne <- Rtsne(data.pca$x, perplexity=perplexity.value)
 log.data.tsne <- Rtsne(log.data.pca$x, perplexity=perplexity.value)
 
+
 # --------------------------------------------------------------
 # Plot samples by lineage, day, and test
 # --------------------------------------------------------------
@@ -231,6 +232,7 @@ log.p.test <- plot.data %>%
   labs(x = "t-SNE 1", y = "t-SNE 2", colour = "Test")
 # Show plots
 grid.arrange(log.p.lineage, log.p.day, log.p.test, ncol=3)
+
 
 # --------------------------------------------------------------
 # Plot biology of the donors

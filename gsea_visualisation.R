@@ -9,12 +9,10 @@
 
 # Libraries
 library(data.table)
-library(limma)
 library(biomaRt)
 library(tidyverse)
 library(reshape2)
 library(ggfortify)
-library(umap)
 library(gridExtra)
 
 
@@ -22,7 +20,8 @@ library(gridExtra)
 # Functions
 # --------------------------------------------------------------
 g_legend<-function(a.gplot){
-  # DESCRIPTION: Function to extract a legend from a plot.
+  # DESCRIPTION: 
+  # Function to extract a legend from a plot.
   # Source: https://github.com/hadley/ggplot2/wiki/Share-a-legend-between-two-ggplot2-graphs
   # :param a.gplot: [ggplot] the plot from which the legend is to be taken.
   # :return: [gDesc] plot legend.
@@ -33,7 +32,8 @@ g_legend<-function(a.gplot){
 }
 
 prepare_log_data <- function(merged.data, base.day) {
-  # DESCRIPTION: changes the data provided in raw intensities to log2 fold-change.
+  # DESCRIPTION:
+  # Changes the data provided in raw intensities to log2 fold-change.
   # In essence, for each donor this function computes the average of gene 
   # expression for the day base.day. Afterwards, all the intensity dataset is
   # divided by the average (by donor). Finally, the function computes the log2 
@@ -69,6 +69,13 @@ prepare_log_data <- function(merged.data, base.day) {
 }
 
 print_main_pathways <- function(selected.lineage, pathways.folder, pathways.file, divided, n.genes.pathway, p.value.limit, translation, days, no.title, base.data, log.base.data) {
+  # DESCRIPTION: 
+  # This function shows the results the main gene sets evolution. 
+  # :param selected.lineage
+  # :param merged.data: [data.frame] intensity dataset with the annotations merged.
+  # :param base.day: [numeric] day used to compute the average of every donor.
+  # :return: [data.frame] merged.data with log2 fold-change intensities. 
+  
   # Read pathways data
   y.label <- "Intensity"
   log.y.label <- "log2 fold-change"

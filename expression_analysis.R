@@ -1,4 +1,11 @@
 
+# DESCRIPTION: 
+# This script computes the ma and volcano plots resulting from the models in 
+# data_processing.R
+
+# Author: Mario Rubio Chavarría
+
+
 # --------------------------------------------------------------
 # Libraries
 # --------------------------------------------------------------
@@ -7,17 +14,12 @@ library(limma)
 library(biomaRt)
 library(tidyverse)
 library(gridExtra)
-library(readxl)
 library(reshape2)
 library(ggfortify)
-library(writexl)
 library(umap)
-library(reshape)
 library(Rtsne)
 library(ggrepel)
 library(gridExtra)
-library(fame)
-library(wesanderson)
 
 
 # --------------------------------------------------------------
@@ -152,19 +154,19 @@ GM_hgnc <- GM_hgnc[order(-abs(GM_hgnc$logFC)), ]
 # Combine expression and annotation data to plot charts
 expr.data <- t(as.matrix(expr_data))
 expr.data <- data.frame(expr.data)
-expr.data$Sample_ID <- rownames(expr.data)
+expr.data$sample_ID <- rownames(expr.data)
 rownames(expr.data) <- NULL
-merged.data <- merge(x = anno.data, y = expr.data, by = "Sample_ID")
+merged.data <- merge(x = anno.data, y = expr.data, by = "sample_ID")
 merged.data$Sample_ID <- factor(merged.data$Sample_ID)
 ordered.days <- 0:14
-merged.data$Differentation_day <- substr(merged.data$Differentation_day, 4, 5)
-merged.data$Day <- factor(merged.data$Differentation_day, levels = ordered.days)
-merged.data$Differentation_day <- NULL
+merged.data$Day <- factor(merged.data$day, levels = ordered.days)
+merged.data$day <- NULL
 merged.data$Donor <- substr(merged.data$Donor, 6, 6)
 ordered.donors <- 1:4
 merged.data$Donor <- factor(merged.data$Donor, levels = ordered.donors)
 ordered.lineages <- c("BFUE", "Mk", "GM")
-merged.data$Lineage <- factor(merged.data$Lineage, levels = ordered.lineages)
+merged.data$Lineage <- factor(merged.data$lineage, levels = ordered.lineages)
+merged.data$lineage <- NULL
 merged.data$Sample <- factor(substr(merged.data$Sample_ID, 4, 5),
                              levels = c("A1","A2", "B1", "B2", "C1", "C2"))
 merged.data <- merged.data %>% data.frame
@@ -225,18 +227,18 @@ p.volcano.gm <- print_volcano_plot(gm.plot.data, threshold, n.relevants)
 p.volcano.mk <- print_volcano_plot(mk.plot.data, threshold, n.relevants)
 
 
-# # --------------------------------------------------------------
-# # Print the plots by lineage
-# # --------------------------------------------------------------
-# # NOTE: there are no overlaps when the plots are printed independently
-# 
-# # Erythrocytes
-# grid.arrange(p.ma.bfue, p.volcano.bfue, ncol=2)
-# 
-# # Myeloid
-# grid.arrange(p.ma.gm, p.volcano.gm, ncol=2)
-# 
-# # Megakaryocytes
-# grid.arrange(p.ma.mk, p.volcano.mk, ncol=2)
+# --------------------------------------------------------------
+# Print the plots by lineage
+# --------------------------------------------------------------
+# NOTE: there are no overlaps when the plots are printed independently
+
+# Erythrocytes
+grid.arrange(p.ma.bfue, p.volcano.bfue, ncol=2)
+
+# Myeloid
+grid.arrange(p.ma.gm, p.volcano.gm, ncol=2)
+
+# Megakaryocytes
+grid.arrange(p.ma.mk, p.volcano.mk, ncol=2)
 
 
