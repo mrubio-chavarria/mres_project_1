@@ -27,6 +27,13 @@ library(gridExtra)
 # --------------------------------------------------------------
 
 prepare_data <- function(lineage, anno.data, merged.data, days) {
+  # DESCRIPTION:
+  # :param lineage: [string] the code to select the lineage: BFUE, GM, or Mk.
+  # :param anno.data: [data.frame] all the annotation data.
+  # :param merged.data: [data.frame] gene expression matrix with annotated data.
+  # :param days: [vector] integers indicating the two days to compare.
+  # :return: [data.frame] the merged data with 4 extra features: the intensity
+  # average for the two days studied, M, and A.
   selected <- merged.data %>%
     dplyr::filter(Lineage == lineage) %>%
     dplyr::filter(Day %in% days)
@@ -45,6 +52,7 @@ prepare_data <- function(lineage, anno.data, merged.data, days) {
   avg.selected$A <- 0.5 * (log(avg.selected[, 2],2) + log(avg.selected[, 1],2))
   avg.selected$ensembl_gene_id <- substr(avg.selected$ensembl_gene_id, 1, 15)
   merged.selected <- merge(avg.selected, anno.data, by = "ensembl_gene_id")
+  return(merged.selected)
 }
 
 print_MA_plot <- function(plot.data, threshold.adj.P.Val, n.relevants, no.legend, no.y) {
@@ -83,6 +91,12 @@ print_MA_plot <- function(plot.data, threshold.adj.P.Val, n.relevants, no.legend
 }
 
 print_volcano_plot <- function(plot.data, threshold.adj.P.Val, n.relevants) {
+  # DESCRIPTION: 
+  # This funtion prints the volcano plot of the given lineage.
+  # :param n.relevants: [integer] number of genes highlighted in the end.
+  # :param plot.data: [data.frame] all the data. The gene expression matrix 
+  # merged with the annotation data.
+  # :return: [ggplot] the object with the volcano plot. 
   plot.data$mlogAdj <- -log(plot.data$adj.P.Val, 10)
   plot.data <- plot.data[order(-abs(plot.data$logFC)), ]
   # Obtain the relevant dots to plot
@@ -106,8 +120,7 @@ print_volcano_plot <- function(plot.data, threshold.adj.P.Val, n.relevants) {
     # scale_alpha_manual(values=c(0.25, 0.5)) +
     # scale_colour_manual(values=c("#5bb9f3", "#0d3147")) +
     guides(size = F, alpha = F) +
-    # labs(x = "log2 fold-change", y = "-log10 adjusted p-value", colour = paste("Adjusted P-Value <", threshold.adj.P.Val, sep = " ")) + 
-    labs(x = "log2 fold-change", y = "-log10 adjusted p-value") + 
+    labs(x = "log2 fold-change", y = "-log10 adjusted p-value", colour = paste("Adjusted P-Value <", threshold.adj.P.Val, sep = " ")) + 
     theme_bw() + 
     theme(text = element_text(size=20),
           axis.text.x = element_text(size=20),
@@ -138,7 +151,7 @@ GM_res <- fread('/home/mario/Projects/az_project/data/GM_res.tsv')
 Mk_res <- fread('/home/mario/Projects/az_project/data/Mk_res.tsv')
 
 # Translate to gene symbols
-mart <- useEnsembl(biomart='ensembl', dataset='hsapiens_gene_ensembl') # Some times the Ensembl site is unresponsive. 
+mart <- useEnsembl(biomart='ensembl', dataset='hsapiens_gene_ensembl') # Some times the Ensembl site is unresponsive.
 translation <-  getBM(attributes = c('ensembl_gene_id', 'hgnc_symbol', 'description'),
                       filters = 'ensembl_gene_id',
                       values = rownames(expr_data),
@@ -157,17 +170,18 @@ expr.data <- data.frame(expr.data)
 expr.data$sample_ID <- rownames(expr.data)
 rownames(expr.data) <- NULL
 merged.data <- merge(x = anno.data, y = expr.data, by = "sample_ID")
-merged.data$Sample_ID <- factor(merged.data$Sample_ID)
+merged.data$sample_ID <- factor(merged.data$sample_ID)
 ordered.days <- 0:14
 merged.data$Day <- factor(merged.data$day, levels = ordered.days)
 merged.data$day <- NULL
-merged.data$Donor <- substr(merged.data$Donor, 6, 6)
+merged.data$Donor <- merged.data$donor
+merged.data$donor <- NULL
 ordered.donors <- 1:4
 merged.data$Donor <- factor(merged.data$Donor, levels = ordered.donors)
 ordered.lineages <- c("BFUE", "Mk", "GM")
 merged.data$Lineage <- factor(merged.data$lineage, levels = ordered.lineages)
 merged.data$lineage <- NULL
-merged.data$Sample <- factor(substr(merged.data$Sample_ID, 4, 5),
+merged.data$Sample <- factor(substr(merged.data$sample_ID, 4, 5),
                              levels = c("A1","A2", "B1", "B2", "C1", "C2"))
 merged.data <- merged.data %>% data.frame
 
@@ -175,7 +189,7 @@ merged.data <- merged.data %>% data.frame
 days <- c(0, 10)
 lineage <- "BFUE"
 anno.data <- BFUE_hgnc
-bfue.plot.data <- prepare_data(lineage, anno.data, merged.data, days) 
+bfue.plot.data <- prepare_data(lineage, anno.data, merged.data, days)
 days <- c(0, 14)
 lineage <- "GM"
 anno.data <- GM_hgnc
@@ -215,7 +229,7 @@ p.ma.mk <- print_MA_plot(mk.plot.data, threshold, n.relevants, no.legend, no.y)
 
 # Common parameters
 threshold <- 1e-5
-n.relevants <- 25
+n.relevants <- 10
 
 # Erythrocytes
 p.volcano.bfue <- print_volcano_plot(bfue.plot.data, threshold, n.relevants)

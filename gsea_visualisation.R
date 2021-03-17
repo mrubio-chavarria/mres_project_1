@@ -171,7 +171,7 @@ print_main_pathways <- function(selected.lineage, pathways.folder, pathways.file
       theme(text = element_text(size=14),
             axis.text.x = element_text(size=14),
             axis.text.y = element_text(size=14)) +
-      labs(x = "Time(days)", y = log.y.label, colour = "Main genes") +
+      labs(x = "Time (days)", y = log.y.label, colour = "Main genes") +
       xlim(initial.day, last.day)
     # Show the pathway printed
     print(pathway.name)
@@ -305,4 +305,3 @@ divided <- F
 print_main_pathways(lineage, pathways.folder.mk, pathways.file.mk.14, divided,
                     n.genes.pathway, p.value.limit, translation, days, no.title,
                     merged.data, log.merged.data)
-

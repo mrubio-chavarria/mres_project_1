@@ -27,8 +27,12 @@ library(gridExtra)
 # --------------------------------------------------------------
 
 prepare_log_data <- function(merged.data, base.day) {
-  # Create merged.data with logFC expression
-  # Take all the samples from day 0
+  # DESCRIPTION:
+  # Creates merged.data with logFC intensities
+  # :param merged.data: [data.frame] gene intensities with annotated data.
+  # :param base.day: [numeric] day that should be used as reference to compute 
+  # the division.
+  # :return: [data.frame] the merged.data but with logFc intensities.
   base <- merged.data[merged.data$day == base.day, ]
   base <- base %>%
     dplyr::select(starts_with("ENSG")) %>%
@@ -142,11 +146,14 @@ p.lineage <- plot.data %>%
   ggplot(aes(x = component1, y = component2, colour = labels)) +
   geom_point(size = 4) +
   theme_bw() +
-  theme(text = element_text(size=16),
-        axis.text.x = element_text(size=16),
-        axis.text.y = element_text(size=16)) +
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank()) +
+  annotate(geom="text", size = 8, x=1.25, y=-5, label="Mk", color="black") +
+  annotate(geom="text", size = 8, x=-4.5, y=-1.25, label="BFUE", color="black") +
+  annotate(geom="text", size = 8, x=5, y=-1.8, label="GM", color="black") +
   scale_color_brewer(palette="Dark2") +
-  labs(x = "t-SNE 1", y = "t-SNE 2", colour = "Lineage")
+  # Remove legend
+  theme(legend.position = "none")
 # Plot by day
 days <- merged.data$day
 lineage <- merged.data$lineage
@@ -171,15 +178,15 @@ colnames(plot.data) <- c("labels", "component1", "component2")
 p.test <- plot.data %>%
   ggplot(aes(x = component1, y = component2, colour = labels)) +
   geom_point(size = 4) +
-  annotate(geom="text", size = 6, x=1.25, y=-5, label="Mk", color="black") +
-  annotate(geom="text", size = 6, x=-4.5, y=-1.25, label="BFUE", color="black") +
-  annotate(geom="text", size = 6, x=5, y=-1.8, label="GM", color="black") +
   theme_bw() +
-  theme(text = element_text(size=16),
-        axis.text.x = element_text(size=16),
-        axis.text.y = element_text(size=16)) +
   scale_color_brewer(palette="Paired") +
-  labs(x = "t-SNE 1", y = "t-SNE 2", colour = "Test")
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank()) +
+  annotate(geom="text", size = 8, x=1.25, y=-5, label="Mk", color="black") +
+  annotate(geom="text", size = 8, x=-4.5, y=-1.25, label="BFUE", color="black") +
+  annotate(geom="text", size = 8, x=5, y=-1.8, label="GM", color="black") +
+  labs(x = "", y = "") +
+  theme(legend.position = "none")
 # Show plots
 grid.arrange(p.lineage, p.day, p.test, ncol=3)
 
@@ -258,20 +265,20 @@ colnames(plot.data) <- c("labels", "component1", "component2")
 p.donor.tsne <- plot.data %>%
   ggplot(aes(x = component1, y = component2, colour = labels)) +
   geom_point(size = 4) +
-  annotate(geom="text", size = 6, x=1.25, y=-5, label="Mk", color="black") +
-  annotate(geom="text", size = 6, x=-4.5, y=-1.25, label="BFUE", color="black") +
-  annotate(geom="text", size = 6, x=5, y=-1.8, label="GM", color="black") +
   theme_bw() +
-  theme(text = element_text(size=16),
-        axis.text.x = element_text(size=16),
-        axis.text.y = element_text(size=16)) +
   scale_color_brewer(palette="Dark2") +
-  labs(x = "t-SNE 1", y = "t-SNE 2", colour = "Donor")
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank()) +
+  annotate(geom="text", size = 8, x=1.25, y=-5, label="Mk", color="black") +
+  annotate(geom="text", size = 8, x=-4.5, y=-1.25, label="BFUE", color="black") +
+  annotate(geom="text", size = 8, x=5, y=-1.8, label="GM", color="black") +
+  labs(x = "", y = "") +
+  theme(legend.position = "none")
 # UMAP
 labels <- merged.data$donor
 plot.data <- cbind(labels, data.frame(data.umap$layout))
 colnames(plot.data) <- c("labels", "component1", "component2")
-p.donor.umap <- plot.data[merged.data$day == 0, ] %>%
+p.donor.umap <- plot.data[merged.data$Day == 0, ] %>%
   ggplot(aes(x = component1, y = component2, colour = labels)) +
   geom_point(size = 2) +
   geom_density2d(contour_var = "density", alpha = 0.5, show.legend = F) +

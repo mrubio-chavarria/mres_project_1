@@ -191,7 +191,7 @@ for (selected.lineage in lineages) {
 # Print the clusters for the selected lineage
 # ------------------------------------------------------------------------------
 
-selected.lineage <- "BFUE"
+selected.lineage <- "Mk"
 print(paste("Lineage:", selected.lineage))
 for (selected.cluster in 1:7) {
   print(paste("Cluster:", selected.cluster))
